@@ -6,10 +6,6 @@
 #include "EntityManager.hpp"
 #include "ComponentManager.hpp"
 
-// --------------------------------
-// Collision Components & System
-// --------------------------------
-
 struct Collider {
     float x, y;
     float width, height;

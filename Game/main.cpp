@@ -6,12 +6,13 @@
 #include "Input/Input.hpp"
 #include "Audio/Audio.hpp"
 #include "Components/Components.hpp"
-#include "Systems/Systems.hpp"
+#include "Systems/Systems.hpp"         // Your other systems (Render, Movement, etc.)
+#include "Systems/NetworkSystem.hpp"    // Our new NetworkSystem
 #include <iostream>
 #include <cmath>
-#include <filesystem>  // For std::filesystem::path
+#include <filesystem>
 
-// Function to resolve asset paths
+// Function to resolve asset paths.
 std::string GetAssetPath(const std::string& assetName) {
     std::filesystem::path assetPath = std::filesystem::current_path() / "assets" / assetName;
     std::cout << "[DEBUG] Resolved asset path: " << assetPath.string() << std::endl; // Debug print
@@ -34,7 +35,7 @@ int main() {
         std::cout << "[INFO] beep.wav loaded successfully.\n";
     }
 
-    // Load textures
+    // Load textures.
     Texture2D playerTexture = GraphicalLibrary::Texture::LoadTextureFromFile(GetAssetPath("player.png").c_str());
     Texture2D enemyTexture = GraphicalLibrary::Texture::LoadTextureFromFile(GetAssetPath("enemy.png").c_str());
     Texture2D bulletTexture = GraphicalLibrary::Texture::LoadTextureFromFile(GetAssetPath("bullet.png").c_str());
@@ -46,7 +47,7 @@ int main() {
         std::cout << "[INFO] All textures loaded successfully.\n";
     }
 
-    // ECS-related managers
+    // ECS-related managers.
     EntityManager em;
     ComponentManager cm;
 
@@ -67,7 +68,12 @@ int main() {
     CollisionSystem collisionSystem;
     AudioSystem audioSystem(beepSound);
 
-    // Store textures for reuse
+    // Instantiate the NetworkSystem.
+    // For example, this configuration sends to server at 127.0.0.1 on port 54000
+    // and binds the client's UDP socket to port 54001.
+    NetworkSystem networkSystem("127.0.0.1", 54000, 54001);
+
+    // Store textures for reuse.
     cm.setGlobalTexture("player", playerTexture);
     cm.setGlobalTexture("enemy", enemyTexture);
     cm.setGlobalTexture("bullet", bulletTexture);
@@ -76,6 +82,7 @@ int main() {
     while (!GraphicalLibrary::Window::ShouldCloseWindow()) {
         float dt = GetFrameTime();
 
+        // Update input, movement, shooting, enemy logic, collisions, audio...
         inputSystem.handleInput(em, cm);
         inputSystem.update(dt, em, cm);
         movementSystem.update(dt, em, cm);
@@ -84,6 +91,10 @@ int main() {
         collisionSystem.update(dt, em, cm);
         audioSystem.update(dt, em, cm);
 
+        // **Network system update: send ECS state (e.g., entity positions) to the server.**
+        networkSystem.update(dt, em, cm);
+
+        // Render the scene.
         GraphicalLibrary::Window::StartDrawing();
         GraphicalLibrary::Window::ClearScreen(RAYWHITE);
         renderSystem.update(dt, em, cm);

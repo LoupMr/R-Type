@@ -27,6 +27,11 @@ target_include_directories(Game PRIVATE
     ${CMAKE_SOURCE_DIR}/Engine
 )
 
+# Link ws2_32 on Windows (for Winsock)
+if(WIN32)
+    target_link_libraries(Game PRIVATE ws2_32)
+endif()
+
 # Ensure assets folder is copied to the build/ directory
 add_custom_command(TARGET Game POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
