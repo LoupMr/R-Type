@@ -4,36 +4,36 @@ project(Game)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Collect all Game source and header files
-file(GLOB_RECURSE GAME_SOURCES
+# --- Client Executable ("r-type_client") ---
+file(GLOB_RECURSE CLIENT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Systems/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/r-type_client.cpp
 )
-
-file(GLOB_RECURSE GAME_HEADERS
+file(GLOB_RECURSE CLIENT_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/Components/*.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Systems/*.hpp
 )
-
-# Create Game executable
-add_executable(Game ${GAME_SOURCES} ${GAME_HEADERS})
-
-# Link Game with Engine and raylib
-target_link_libraries(Game PRIVATE Engine raylib)
-
-# Include directories for Game (PUBLIC so Engine headers are accessible)
-target_include_directories(Game PRIVATE
+add_executable(r-type_client ${CLIENT_SOURCES} ${CLIENT_HEADERS})
+target_link_libraries(r-type_client PRIVATE Engine raylib)
+target_include_directories(r-type_client PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/Engine
 )
-
-# Link ws2_32 on Windows (for Winsock)
 if(WIN32)
-    target_link_libraries(Game PRIVATE ws2_32)
+    target_link_libraries(r-type_client PRIVATE ws2_32)
 endif()
-
-# Ensure assets folder is copied to the build/ directory
-add_custom_command(TARGET Game POST_BUILD
+add_custom_command(TARGET r-type_client POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/Game/assets ${CMAKE_BINARY_DIR}/assets
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:r-type_client>/assets
 )
+
+# --- Server Executable ("r-type_server") ---
+add_executable(r-type_server ${CMAKE_CURRENT_SOURCE_DIR}/r-type_server.cpp)
+target_link_libraries(r-type_server PRIVATE Engine raylib)
+target_include_directories(r-type_server PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/Engine
+)
+if(WIN32)
+    target_link_libraries(r-type_server PRIVATE ws2_32)
+endif()
