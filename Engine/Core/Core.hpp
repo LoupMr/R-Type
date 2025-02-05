@@ -5,14 +5,12 @@
 #include <string>
 
 namespace GraphicalLibrary {
-    // Forward declarations
     class Window;
     class Texture;
     class Audio;
     class Input;
 
-    // Common utility functions
-    float GetDeltaTime(); // Renamed from GetFrameTime
+    float GetDeltaTime();
 }
 
 #endif // GRAPHICAL_LIBRARY_CORE_HPP

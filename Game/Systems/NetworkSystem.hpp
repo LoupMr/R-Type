@@ -24,7 +24,7 @@
 #include <mutex>
 #include <chrono>
 
-// Used to track important packets awaiting ACK
+// track important packets awaiting ACK
 struct PendingMessage {
     std::vector<char> data;
     std::chrono::steady_clock::time_point timeSent;
@@ -40,7 +40,7 @@ public:
 
     bool sendRaw(const std::string &data);
 
-    // Sends a message with optional payload
+    // Sends a message payload optional
     bool sendPacket(uint8_t type, const void* payload, size_t payloadSize, bool important=false);
 
     // Sends an ACK for an important message
@@ -50,8 +50,8 @@ public:
     bool isGameStarted() const;
 
     // For drawing
-    float getLatency() const;       // ms
-    uint32_t getPacketLoss() const; // naive count of re-sends
+    float getLatency() const;
+    uint32_t getPacketLoss() const;
 
     // Unique ID for this client
     int getLocalNetworkID() const;
@@ -72,7 +72,7 @@ private:
 
     std::mutex socketMutex;
 
-    uint32_t nextSequence = 1; // to label packets
+    uint32_t nextSequence = 1;
     std::unordered_map<uint32_t, PendingMessage> pendingMessages;
     std::mutex pendingMutex;
 
@@ -81,7 +81,7 @@ private:
     std::chrono::steady_clock::time_point pingSentTime;
     float latencyMs = 0.0f;
 
-    // We'll increment this each time we re-send an important packet
+    // increment each time we re-send an important packet
     uint32_t packetLossCount = 0;
 
     // Remote Entities

@@ -25,6 +25,7 @@
 std::mutex clientsMutex;
 std::mutex stateMutex;
 
+// To Do block client port if already use
 // ----------------------------------------
 // Player
 // ----------------------------------------
@@ -248,7 +249,7 @@ void broadcastGameState(int sock, const std::vector<sockaddr_in> &clients) {
 void simulationLoop(int sock, std::vector<sockaddr_in> &clients, bool &gameStarted) {
     while (true) {
         if (gameStarted) {
-            float dt = 0.09f; // stepping every 50ms
+            float dt = 0.09f; // stepping every xxms
 
             {
                 std::lock_guard<std::mutex> lock(stateMutex);
@@ -265,7 +266,7 @@ void simulationLoop(int sock, std::vector<sockaddr_in> &clients, bool &gameStart
                 for (auto &e : enemies) {
                     if (!e.active) continue;
                     e.x += e.vx * dt;
-                    // off-screen left => deactivate
+                    // off-screen left => detroyed
                     if (e.x < -100) {
                         e.active = false;
                     }
@@ -306,7 +307,7 @@ void simulationLoop(int sock, std::vector<sockaddr_in> &clients, bool &gameStart
                         b.y = ps.y;
                         b.vx = bulletSpeed;
                         b.vy = 0.f;
-                        b.ownerID = pid; // player bullet
+                        b.ownerID = pid; // pos player bullet
                         b.active = true;
                         bullets.push_back(b);
                         inp.shoot = false;
@@ -363,7 +364,7 @@ void simulationLoop(int sock, std::vector<sockaddr_in> &clients, bool &gameStart
 }
 
 // ----------------------------------------
-// Thread that receives packets
+// Thread receives packets
 // ----------------------------------------
 void handleClient(int sock, std::vector<sockaddr_in> &clients,
                   std::unordered_set<std::string> &readySet,
@@ -455,7 +456,6 @@ void handleClient(int sock, std::vector<sockaddr_in> &clients,
                 break;
             }
             default:
-                // ignore
                 break;
         }
     }
@@ -513,7 +513,7 @@ int main(int argc, char* argv[]) {
                              std::ref(clients), std::ref(readySet),
                              std::ref(gameStarted));
 
-    // Thread to broadcast lobby info until start
+    // Thread for broadcast lobby | until start
     std::thread lobbyThread([&](){
         while (!gameStarted) {
             {

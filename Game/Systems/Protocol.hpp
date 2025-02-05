@@ -25,27 +25,27 @@ enum MessageType : uint8_t {
 struct MessageHeader {
     uint8_t  type;       // which message (see enum)
     uint32_t sequence;   // sequence number
-    uint32_t timestamp;  // e.g. ms from some clock
+    uint32_t timestamp;  // ms from some clock
     uint8_t  flags;      // bit 0 => important
 };
 
-// For acknowledging important messages
+// acknowledging important messages
 struct AckPayload {
     uint32_t ackSequence;
 };
 
-// For latency measurement
+// latency measurement
 struct PingPayload {
     uint32_t pingSequence;
 };
 
-// For showing lobby info
+// showing lobby info
 struct LobbyStatusPayload {
     uint8_t totalClients;
     uint8_t readyClients;
 };
 
-// From client: input (up/down/left/right/shoot)
+// client: input (up/down/left/right/shoot)
 struct PlayerInputPayload {
     int32_t netID;
     bool up;
@@ -73,7 +73,7 @@ struct EnemyState {
     int32_t health;
 };
 
-// Full game state snapshot
+// Full game state
 struct GameStatePayload {
     // Enemies
     uint8_t numEnemies;
@@ -95,7 +95,7 @@ struct GameStatePayload {
 
 #pragma pack(pop)
 
-// Utility to get current time in ms (relative to steady_clock)
+// Utility to get current time in ms
 inline uint32_t getCurrentTimeMS() {
     using ms = std::chrono::milliseconds;
     return static_cast<uint32_t>(

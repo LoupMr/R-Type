@@ -41,8 +41,8 @@ struct Bullet {
 struct Enemy {
     float speed{100.0f};
     int health{3};
-    float shootCooldown{2.0f}; // Time between shots
-    float shootTimer{0.0f};    // Current cooldown timer
+    float shootCooldown{2.0f};
+    float shootTimer{0.0f};
 };
 
 // Health component

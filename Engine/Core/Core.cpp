@@ -1,8 +1,8 @@
 #include "Core.hpp"
-#include <raylib.h> // Include Raylib header
+#include <raylib.h>
 
 namespace GraphicalLibrary {
     float GetDeltaTime() {
-        return GetFrameTime(); // Explicitly call Raylib's GetFrameTime()
+        return GetFrameTime();
     }
 }

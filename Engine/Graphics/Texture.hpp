@@ -6,9 +6,9 @@
 namespace GraphicalLibrary {
     class Texture {
     public:
-        static Texture2D LoadTextureFromFile(const std::string& filePath); // Renamed from LoadFromFile
-        static void ReleaseTexture(Texture2D texture); // Renamed from Unload
-        static void RenderTexture(Texture2D texture, float x, float y); // Renamed from Draw
+        static Texture2D LoadTextureFromFile(const std::string& filePath);
+        static void ReleaseTexture(Texture2D texture);
+        static void RenderTexture(Texture2D texture, float x, float y);
     };
 }
 

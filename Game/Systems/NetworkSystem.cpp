@@ -208,7 +208,7 @@ void NetworkSystem::update(float dt, EntityManager &em, ComponentManager &cm) {
                     GameStatePayload gs;
                     std::memcpy(&gs, buffer + sizeof(MessageHeader), sizeof(GameStatePayload));
 
-                    // 1) Enemies
+                    // Enemies
                     {
                         std::lock_guard<std::mutex> lock(remoteEnemiesMutex);
                         std::unordered_set<int> updated;
@@ -252,7 +252,7 @@ void NetworkSystem::update(float dt, EntityManager &em, ComponentManager &cm) {
                         }
                     }
 
-                    // 2) Players
+                    // Players
                     {
                         std::lock_guard<std::mutex> lock(remotePlayersMutex);
                         std::unordered_set<int> updated;
@@ -295,7 +295,7 @@ void NetworkSystem::update(float dt, EntityManager &em, ComponentManager &cm) {
                         }
                     }
 
-                    // 3) Bullets
+                    // Bullets
                     {
                         std::lock_guard<std::mutex> lock(remoteBulletsMutex);
                         std::unordered_set<int> updated;

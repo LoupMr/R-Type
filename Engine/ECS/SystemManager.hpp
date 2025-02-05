@@ -8,9 +8,6 @@
 #include "EntityManager.hpp"
 #include "ComponentManager.hpp"
 
-// -----------------------
-// System Manager
-// -----------------------
 
 class SystemManager {
 public:
@@ -23,7 +20,6 @@ private:
     std::vector<std::shared_ptr<System>> m_systems;
 };
 
-// Template implementation must be kept in the header
 template<typename T, typename... Args>
 std::shared_ptr<T> SystemManager::addSystem(Args&&... args) {
     static_assert(std::is_base_of<System, T>::value, "T must inherit from System");

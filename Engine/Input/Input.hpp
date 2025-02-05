@@ -6,7 +6,7 @@
 namespace GraphicalLibrary {
     class Input {
     public:
-        static bool IsKeyPressed(int key); // Renamed from IsKeyDown
+        static bool IsKeyPressed(int key);
     };
 }
 
