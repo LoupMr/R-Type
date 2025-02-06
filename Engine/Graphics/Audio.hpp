@@ -1,9 +1,10 @@
-#ifndef GRAPHICAL_LIBRARY_AUDIO_HPP
-#define GRAPHICAL_LIBRARY_AUDIO_HPP
+#ifndef ENGINE_AUDIO_HPP
+#define ENGINE_AUDIO_HPP
 
-#include "Core/Core.hpp"
+#include <raylib.h>
+#include <string>
 
-namespace GraphicalLibrary {
+namespace Engine {
     class Audio {
     public:
         static void InitializeAudioDevice();
@@ -14,4 +15,4 @@ namespace GraphicalLibrary {
     };
 }
 
-#endif // GRAPHICAL_LIBRARY_AUDIO_HPP
+#endif // ENGINE_AUDIO_HPP

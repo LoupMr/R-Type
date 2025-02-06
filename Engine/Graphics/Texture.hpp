@@ -1,9 +1,10 @@
-#ifndef GRAPHICAL_LIBRARY_TEXTURE_HPP
-#define GRAPHICAL_LIBRARY_TEXTURE_HPP
+#ifndef ENGINE_TEXTURE_HPP
+#define ENGINE_TEXTURE_HPP
 
-#include "Core/Core.hpp"
+#include <raylib.h>
+#include <string>
 
-namespace GraphicalLibrary {
+namespace Engine {
     class Texture {
     public:
         static Texture2D LoadTextureFromFile(const std::string& filePath);
@@ -12,4 +13,4 @@ namespace GraphicalLibrary {
     };
 }
 
-#endif // GRAPHICAL_LIBRARY_TEXTURE_HPP
+#endif // ENGINE_TEXTURE_HPP

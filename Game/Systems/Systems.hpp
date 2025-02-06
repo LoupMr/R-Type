@@ -1,48 +1,55 @@
-#ifndef SYSTEMS_HPP
-#define SYSTEMS_HPP
+#ifndef GAME_SYSTEMS_HPP
+#define GAME_SYSTEMS_HPP
 
-#include "ECS/System.hpp"
-#include "Components/Components.hpp"
+#include "Engine/ECS/System.hpp"
+#include "Engine/ECS/EntityManager.hpp"
+#include "Engine/ECS/ComponentManager.hpp"
+#include "Game/Components/Components.hpp"
+#include <raylib.h>
 
-class RenderSystem : public System {
+class RenderSystem : public Engine::System {
 public:
-    void update(float dt, EntityManager& em, ComponentManager& cm) override;
+    void update(float dt, Engine::EntityManager& em, Engine::ComponentManager& cm) override;
 };
 
-class MovementSystem : public System {
+class MovementSystem : public Engine::System {
 public:
-    void update(float dt, EntityManager& em, ComponentManager& cm) override;
+    void update(float dt, Engine::EntityManager& em, Engine::ComponentManager& cm) override;
 };
 
-class InputSystem : public System {
+class InputSystem : public Engine::System {
 public:
-    void handleInput(EntityManager& em, ComponentManager& cm);
-    void update(float dt, EntityManager& em, ComponentManager& cm) override;
+    void handleInput(Engine::EntityManager& em, Engine::ComponentManager& cm);
+    void update(float dt, Engine::EntityManager& em, Engine::ComponentManager& cm) override;
 };
 
-class ShootingSystem : public System {
+class ShootingSystem : public Engine::System {
 public:
-    void update(float dt, EntityManager& em, ComponentManager& cm) override;
+    void update(float dt, Engine::EntityManager& em, Engine::ComponentManager& cm) override;
 };
 
-class EnemySystem : public System {
+class EnemySystem : public Engine::System {
 public:
-    void update(float dt, EntityManager& em, ComponentManager& cm) override;
+    void update(float dt, Engine::EntityManager& em, Engine::ComponentManager& cm) override;
 };
 
-class CollisionSystem : public System {
+class CollisionSystem : public Engine::System {
 public:
-    void update(float dt, EntityManager& em, ComponentManager& cm) override;
+    void update(float dt, Engine::EntityManager& em, Engine::ComponentManager& cm) override;
+
+private:
+    bool playerDead = false;
+    float respawnTimer = 0.0f;
 };
 
-class AudioSystem : public System {
+class AudioSystem : public Engine::System {
 public:
     AudioSystem(Sound sound);
     ~AudioSystem();
-    void update(float dt, EntityManager& em, ComponentManager& cm) override;
+    void update(float dt, Engine::EntityManager& em, Engine::ComponentManager& cm) override;
 
 private:
     Sound m_sound;
 };
 
-#endif // SYSTEMS_HPP
+#endif // GAME_SYSTEMS_HPP

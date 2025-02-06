@@ -1,23 +1,6 @@
-#ifdef _WIN32
-    #define _WINSOCK_DEPRECATED_NO_WARNINGS
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
-    #pragma comment(lib, "Ws2_32.lib")
-#else
-    #include <arpa/inet.h>
-    #include <netinet/in.h>
-    #include <sys/socket.h>
-    #include <unistd.h>
-#endif
-
 #include "NetworkSystem.hpp"
-#include "Protocol.hpp"
-#include "ECS/EntityManager.hpp"
-#include "ECS/ComponentManager.hpp"
-#include "Components/Components.hpp"
 #include <iostream>
 #include <cstring>
-#include <chrono>
 #include <unordered_set>
 
 NetworkSystem::NetworkSystem(const std::string &serverIP, int serverPort, int clientPort)
@@ -130,7 +113,6 @@ void NetworkSystem::processPendingMessages() {
                            now - pending.timeSent).count();
         // If 100ms have passed without an ACK, re-send
         if (elapsed > 100) {
-            // Count as "packet loss" for demonstration
             packetLossCount++;
 
             std::lock_guard<std::mutex> sockLock(socketMutex);
@@ -147,7 +129,7 @@ void NetworkSystem::processPendingMessages() {
     }
 }
 
-void NetworkSystem::update(float dt, EntityManager &em, ComponentManager &cm) {
+void NetworkSystem::update(float dt, Engine::EntityManager &em, Engine::ComponentManager &cm) {
     // Non-blocking receive
     char buffer[2048];
     int bytesReceived = 0;
@@ -190,13 +172,13 @@ void NetworkSystem::update(float dt, EntityManager &em, ComponentManager &cm) {
                 break;
             }
             case MSG_PONG: {
-                // Measure round-trip
+                // measure round-trip
                 if (bytesReceived >= (int)(sizeof(MessageHeader) + sizeof(PingPayload))) {
                     PingPayload pong;
                     std::memcpy(&pong, buffer + sizeof(MessageHeader), sizeof(PingPayload));
                     if (pong.pingSequence == lastPingSequence) {
                         auto now = std::chrono::steady_clock::now();
-                        float ms = std::chrono::duration<float, std::milli>(now - pingSentTime).count();
+                        float ms = std::chrono::duration<float,std::milli>(now - pingSentTime).count();
                         latencyMs = ms;
                     }
                 }
@@ -208,7 +190,7 @@ void NetworkSystem::update(float dt, EntityManager &em, ComponentManager &cm) {
                     GameStatePayload gs;
                     std::memcpy(&gs, buffer + sizeof(MessageHeader), sizeof(GameStatePayload));
 
-                    // Enemies
+                    // Update enemies
                     {
                         std::lock_guard<std::mutex> lock(remoteEnemiesMutex);
                         std::unordered_set<int> updated;
@@ -216,25 +198,23 @@ void NetworkSystem::update(float dt, EntityManager &em, ComponentManager &cm) {
                             int eID = gs.enemies[i].enemyID;
                             updated.insert(eID);
 
-                            // If dead?
                             if (gs.enemies[i].health <= 0) {
-                                // remove if exists
+                                // remove if existing
                                 if (remoteEnemies.count(eID)) {
                                     em.destroyEntity(remoteEnemies[eID]);
                                     remoteEnemies.erase(eID);
                                 }
                                 continue;
                             }
-
                             // create or update
                             if (!remoteEnemies.count(eID)) {
-                                Entity eEnt = em.createEntity();
+                                Engine::Entity eEnt = em.createEntity();
                                 cm.addComponent(eEnt, Position{gs.enemies[i].x, gs.enemies[i].y});
-                                Texture2D tex = cm.getGlobalTexture("enemy");
+                                auto tex = cm.getGlobalTexture("enemy");
                                 cm.addComponent(eEnt, Sprite{tex, tex.width, tex.height});
                                 remoteEnemies[eID] = eEnt;
                             } else {
-                                Entity eEnt = remoteEnemies[eID];
+                                Engine::Entity eEnt = remoteEnemies[eID];
                                 if (auto *pos = cm.getComponent<Position>(eEnt)) {
                                     pos->x = gs.enemies[i].x;
                                     pos->y = gs.enemies[i].y;
@@ -252,7 +232,7 @@ void NetworkSystem::update(float dt, EntityManager &em, ComponentManager &cm) {
                         }
                     }
 
-                    // Players
+                    // Update players
                     {
                         std::lock_guard<std::mutex> lock(remotePlayersMutex);
                         std::unordered_set<int> updated;
@@ -261,6 +241,7 @@ void NetworkSystem::update(float dt, EntityManager &em, ComponentManager &cm) {
                             updated.insert(pid);
 
                             if (gs.players[i].health <= 0) {
+                                // remove if exist
                                 if (remotePlayers.count(pid)) {
                                     em.destroyEntity(remotePlayers[pid]);
                                     remotePlayers.erase(pid);
@@ -270,14 +251,14 @@ void NetworkSystem::update(float dt, EntityManager &em, ComponentManager &cm) {
 
                             if (!remotePlayers.count(pid)) {
                                 // create
-                                Entity pEnt = em.createEntity();
+                                Engine::Entity pEnt = em.createEntity();
                                 cm.addComponent(pEnt, Position{gs.players[i].x, gs.players[i].y});
-                                Texture2D rpTex = cm.getGlobalTexture("remotePlayer");
+                                auto rpTex = cm.getGlobalTexture("remotePlayer");
                                 cm.addComponent(pEnt, Sprite{rpTex, rpTex.width, rpTex.height});
                                 remotePlayers[pid] = pEnt;
                             } else {
                                 // update
-                                Entity pEnt = remotePlayers[pid];
+                                Engine::Entity pEnt = remotePlayers[pid];
                                 if (auto *pos = cm.getComponent<Position>(pEnt)) {
                                     pos->x = gs.players[i].x;
                                     pos->y = gs.players[i].y;
@@ -295,7 +276,7 @@ void NetworkSystem::update(float dt, EntityManager &em, ComponentManager &cm) {
                         }
                     }
 
-                    // Bullets
+                    // Update bullets
                     {
                         std::lock_guard<std::mutex> lock(remoteBulletsMutex);
                         std::unordered_set<int> updated;
@@ -304,13 +285,13 @@ void NetworkSystem::update(float dt, EntityManager &em, ComponentManager &cm) {
                             updated.insert(b.bulletID);
 
                             if (!remoteBullets.count(b.bulletID)) {
-                                Entity bEnt = em.createEntity();
+                                Engine::Entity bEnt = em.createEntity();
                                 cm.addComponent(bEnt, Position{b.x, b.y});
-                                Texture2D bulletTex = cm.getGlobalTexture("bullet");
+                                auto bulletTex = cm.getGlobalTexture("bullet");
                                 cm.addComponent(bEnt, Sprite{bulletTex, bulletTex.width, bulletTex.height});
                                 remoteBullets[b.bulletID] = bEnt;
                             } else {
-                                Entity bEnt = remoteBullets[b.bulletID];
+                                Engine::Entity bEnt = remoteBullets[b.bulletID];
                                 if (auto *pos = cm.getComponent<Position>(bEnt)) {
                                     pos->x = b.x;
                                     pos->y = b.y;
@@ -340,8 +321,10 @@ void NetworkSystem::update(float dt, EntityManager &em, ComponentManager &cm) {
                 }
                 break;
             }
-            default:
+            default: {
+                // ignore unhandled message
                 break;
+            }
         }
     }
 

@@ -13,50 +13,39 @@
     #include <unistd.h>
 #endif
 
-#include "Protocol.hpp"
-#include "ECS/System.hpp"
-#include "ECS/EntityManager.hpp"
-#include "ECS/ComponentManager.hpp"
-#include "Components/Components.hpp"
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include <mutex>
 #include <chrono>
 
-// track important packets awaiting ACK
+#include "Protocol.hpp"
+#include "Engine/ECS/System.hpp"
+#include "Engine/ECS/EntityManager.hpp"
+#include "Engine/ECS/ComponentManager.hpp"
+#include "Game/Components/Components.hpp"
+
 struct PendingMessage {
     std::vector<char> data;
     std::chrono::steady_clock::time_point timeSent;
 };
 
-class NetworkSystem : public System {
+class NetworkSystem : public Engine::System {
 public:
     NetworkSystem(const std::string &serverIP, int serverPort, int clientPort);
     ~NetworkSystem();
 
-    // ECS system update
-    void update(float dt, EntityManager &em, ComponentManager &cm) override;
+    void update(float dt, Engine::EntityManager &em, Engine::ComponentManager &cm) override;
 
     bool sendRaw(const std::string &data);
-
-    // Sends a message payload optional
     bool sendPacket(uint8_t type, const void* payload, size_t payloadSize, bool important=false);
-
-    // Sends an ACK for an important message
     bool sendAck(uint32_t sequence);
 
-    // Whether we got a "start" from the server
     bool isGameStarted() const;
-
-    // For drawing
     float getLatency() const;
     uint32_t getPacketLoss() const;
-
-    // Unique ID for this client
     int getLocalNetworkID() const;
 
-    // Lobby info
     void getLobbyStatus(uint8_t &total, uint8_t &ready);
 
 private:
@@ -88,9 +77,9 @@ private:
     std::mutex remotePlayersMutex;
     std::mutex remoteEnemiesMutex;
     std::mutex remoteBulletsMutex;
-    std::unordered_map<int, Entity> remotePlayers;
-    std::unordered_map<int, Entity> remoteEnemies;
-    std::unordered_map<int, Entity> remoteBullets;
+    std::unordered_map<int, Engine::Entity> remotePlayers;
+    std::unordered_map<int, Engine::Entity> remoteEnemies;
+    std::unordered_map<int, Engine::Entity> remoteBullets;
 
     // Lobby
     uint8_t lobbyTotal = 0;

@@ -1,6 +1,7 @@
 #include "Audio.hpp"
+#include <raylib.h>
 
-namespace GraphicalLibrary {
+namespace Engine {
     void Audio::InitializeAudioDevice() {
         InitAudioDevice();
     }

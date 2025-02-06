@@ -23,10 +23,10 @@ enum MessageType : uint8_t {
 
 // -------------------------------------
 struct MessageHeader {
-    uint8_t  type;       // which message (see enum)
-    uint32_t sequence;   // sequence number
-    uint32_t timestamp;  // ms from some clock
-    uint8_t  flags;      // bit 0 => important
+    uint8_t  type;
+    uint32_t sequence;
+    uint32_t timestamp;
+    uint8_t  flags;  // bit 0 => important
 };
 
 // acknowledging important messages
@@ -45,7 +45,7 @@ struct LobbyStatusPayload {
     uint8_t readyClients;
 };
 
-// client: input (up/down/left/right/shoot)
+// client input
 struct PlayerInputPayload {
     int32_t netID;
     bool up;
@@ -75,11 +75,9 @@ struct EnemyState {
 
 // Full game state
 struct GameStatePayload {
-    // Enemies
     uint8_t numEnemies;
     EnemyState enemies[32];
 
-    // Players
     uint8_t numPlayers;
     struct PlayerState {
         int32_t playerID;
@@ -88,7 +86,6 @@ struct GameStatePayload {
         int32_t health;
     } players[4];
 
-    // Bullets
     uint8_t numBullets;
     BulletState bullets[32];
 };

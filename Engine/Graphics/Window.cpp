@@ -1,6 +1,6 @@
 #include "Window.hpp"
 
-namespace GraphicalLibrary {
+namespace Engine {
     void Window::Initialize(int screenWidth, int screenHeight, const std::string& title) {
         InitWindow(screenWidth, screenHeight, title.c_str());
         SetTargetFPS(60);

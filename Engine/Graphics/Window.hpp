@@ -1,12 +1,13 @@
-#ifndef GRAPHICAL_LIBRARY_WINDOW_HPP
-#define GRAPHICAL_LIBRARY_WINDOW_HPP
+#ifndef ENGINE_WINDOW_HPP
+#define ENGINE_WINDOW_HPP
 
-#include "Core/Core.hpp"
+#include <raylib.h>
+#include <string>
 
-namespace GraphicalLibrary {
+namespace Engine {
     class Window {
     public:
-        static void Initialize(int screenWidth, int screenHeight, const std::string& title); // Renamed from Init
+        static void Initialize(int screenWidth, int screenHeight, const std::string& title);
         static void Shutdown();
         static bool ShouldCloseWindow();
         static void StartDrawing();
@@ -15,4 +16,4 @@ namespace GraphicalLibrary {
     };
 }
 
-#endif // GRAPHICAL_LIBRARY_WINDOW_HPP
+#endif // ENGINE_WINDOW_HPP

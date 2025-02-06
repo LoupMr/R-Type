@@ -1,6 +1,6 @@
 #include "Texture.hpp"
 
-namespace GraphicalLibrary {
+namespace Engine {
     Texture2D Texture::LoadTextureFromFile(const std::string& filePath) {
         return LoadTexture(filePath.c_str());
     }

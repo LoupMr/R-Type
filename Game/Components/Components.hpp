@@ -1,8 +1,7 @@
-#ifndef COMPONENTS_HPP
-#define COMPONENTS_HPP
+#ifndef GAME_COMPONENTS_HPP
+#define GAME_COMPONENTS_HPP
 
 #include <raylib.h>
-#include <vector>
 
 // Position component
 struct Position {
@@ -51,4 +50,4 @@ struct Health {
     int max{3};
 };
 
-#endif // COMPONENTS_HPP
+#endif // GAME_COMPONENTS_HPP

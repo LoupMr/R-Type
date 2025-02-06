@@ -1,16 +1,13 @@
-#ifndef GRAPHICAL_LIBRARY_CORE_HPP
-#define GRAPHICAL_LIBRARY_CORE_HPP
+#ifndef ENGINE_CORE_HPP
+#define ENGINE_CORE_HPP
 
 #include <raylib.h>
 #include <string>
 
-namespace GraphicalLibrary {
-    class Window;
-    class Texture;
-    class Audio;
-    class Input;
+namespace Engine {
+    // Forward declarations, if needed, or just use inline function below
 
     float GetDeltaTime();
 }
 
-#endif // GRAPHICAL_LIBRARY_CORE_HPP
+#endif // ENGINE_CORE_HPP
