@@ -3,23 +3,19 @@
 
 #include <raylib.h>
 
-// Position component
 struct Position {
     float x, y;
 };
 
-// Velocity component
 struct Velocity {
     float vx, vy;
 };
 
-// Sprite component
 struct Sprite {
     Texture2D texture;
     int w, h;
 };
 
-// Keyboard control component
 struct KeyboardControl {
     bool up{false};
     bool down{false};
@@ -28,7 +24,6 @@ struct KeyboardControl {
     bool shoot{false};
 };
 
-// Bullet component
 struct Bullet {
     bool isActive{true};
     float speed{500.0f};
@@ -36,7 +31,6 @@ struct Bullet {
     float distanceTraveled{0.0f};
 };
 
-// Enemy component
 struct Enemy {
     float speed{100.0f};
     int health{3};
@@ -44,7 +38,6 @@ struct Enemy {
     float shootTimer{0.0f};
 };
 
-// Health component
 struct Health {
     int current{3};
     int max{3};

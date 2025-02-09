@@ -1,17 +1,10 @@
 #ifndef NETWORKSYSTEM_HPP
 #define NETWORKSYSTEM_HPP
 
-#ifdef _WIN32
-    #define _WINSOCK_DEPRECATED_NO_WARNINGS
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
-    #pragma comment(lib, "Ws2_32.lib")
-#else
-    #include <arpa/inet.h>
-    #include <netinet/in.h>
-    #include <sys/socket.h>
-    #include <unistd.h>
-#endif
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #include <string>
 #include <unordered_map>
@@ -19,7 +12,8 @@
 #include <mutex>
 #include <chrono>
 
-#include "Protocol.hpp"
+#include "../Protocol/Protocol.hpp"
+
 #include "Engine/ECS/System.hpp"
 #include "Engine/ECS/EntityManager.hpp"
 #include "Engine/ECS/ComponentManager.hpp"
@@ -38,7 +32,7 @@ public:
     void update(float dt, Engine::EntityManager &em, Engine::ComponentManager &cm) override;
 
     bool sendRaw(const std::string &data);
-    bool sendPacket(uint8_t type, const void* payload, size_t payloadSize, bool important=false);
+    bool sendPacket(uint8_t type, const void* payload, size_t payloadSize, bool important = false);
     bool sendAck(uint32_t sequence);
 
     bool isGameStarted() const;
@@ -50,8 +44,6 @@ public:
 
 private:
     void processPendingMessages();
-
-private:
     int sock;
     sockaddr_in serverAddr;
     int localNetworkID;
@@ -70,7 +62,6 @@ private:
     std::chrono::steady_clock::time_point pingSentTime;
     float latencyMs = 0.0f;
 
-    // increment each time we re-send an important packet
     uint32_t packetLossCount = 0;
 
     // Remote Entities

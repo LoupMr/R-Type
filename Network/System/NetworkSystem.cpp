@@ -6,14 +6,6 @@
 NetworkSystem::NetworkSystem(const std::string &serverIP, int serverPort, int clientPort)
     : localNetworkID(clientPort)
 {
-#ifdef _WIN32
-    WSADATA wsaData;
-    int wsRes = WSAStartup(MAKEWORD(2,2), &wsaData);
-    if (wsRes != 0) {
-        std::cerr << "[NetworkSystem] WSAStartup failed: " << wsRes << "\n";
-    }
-#endif
-
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
         std::cerr << "[NetworkSystem] Error creating socket.\n";
@@ -25,35 +17,26 @@ NetworkSystem::NetworkSystem(const std::string &serverIP, int serverPort, int cl
     clientAddr.sin_port   = htons(clientPort);
     clientAddr.sin_addr.s_addr = INADDR_ANY;
 
-    if (bind(sock, (struct sockaddr*)&clientAddr, sizeof(clientAddr)) < 0) {
+    if (bind(sock, reinterpret_cast<struct sockaddr*>(&clientAddr), sizeof(clientAddr)) < 0) {
         std::cerr << "[NetworkSystem] Bind failed.\n";
     }
 
     std::memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port   = htons(serverPort);
-#ifdef _WIN32
-    inet_pton(AF_INET, serverIP.c_str(), &serverAddr.sin_addr);
-#else
     inet_aton(serverIP.c_str(), &serverAddr.sin_addr);
-#endif
 
     std::cout << "[NetworkSystem] Initialized. LocalID=" << localNetworkID
               << ", server=" << serverIP << ":" << serverPort << "\n";
 }
 
 NetworkSystem::~NetworkSystem() {
-#ifdef _WIN32
-    closesocket(sock);
-    WSACleanup();
-#else
     close(sock);
-#endif
 }
 
 bool NetworkSystem::sendRaw(const std::string &data) {
     std::lock_guard<std::mutex> lock(socketMutex);
-    int sent = sendto(sock, data.c_str(), (int)data.size(), 0,
+    int sent = sendto(sock, data.c_str(), static_cast<int>(data.size()), 0,
                       reinterpret_cast<struct sockaddr*>(&serverAddr), sizeof(serverAddr));
     if (sent < 0) {
         std::cerr << "[NetworkSystem] sendRaw failed.\n";
@@ -64,10 +47,10 @@ bool NetworkSystem::sendRaw(const std::string &data) {
 
 bool NetworkSystem::sendPacket(uint8_t type, const void* payload, size_t payloadSize, bool important) {
     MessageHeader header;
-    header.type      = type;
-    header.sequence  = nextSequence++;
+    header.type = type;
+    header.sequence = nextSequence++;
     header.timestamp = getCurrentTimeMS();
-    header.flags     = (important ? 1 : 0);
+    header.flags = important ? 1 : 0;
 
     size_t totalSize = sizeof(MessageHeader) + payloadSize;
     std::vector<char> packet(totalSize);
@@ -78,8 +61,8 @@ bool NetworkSystem::sendPacket(uint8_t type, const void* payload, size_t payload
 
     {
         std::lock_guard<std::mutex> lock(socketMutex);
-        int sentBytes = sendto(sock, packet.data(), (int)totalSize, 0,
-                               (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+        int sentBytes = sendto(sock, packet.data(), static_cast<int>(totalSize), 0,
+                               reinterpret_cast<struct sockaddr*>(&serverAddr), sizeof(serverAddr));
         if (sentBytes < 0) {
             std::cerr << "[NetworkSystem] sendto failed.\n";
             return false;
@@ -100,113 +83,95 @@ bool NetworkSystem::sendPacket(uint8_t type, const void* payload, size_t payload
 bool NetworkSystem::sendAck(uint32_t sequence) {
     AckPayload ack;
     ack.ackSequence = sequence;
-    return sendPacket(MSG_ACK, &ack, sizeof(ack), false);
+    return sendPacket(static_cast<uint8_t>(MessageType::ACK), &ack, sizeof(ack), false);
 }
 
 void NetworkSystem::processPendingMessages() {
     auto now = std::chrono::steady_clock::now();
     std::lock_guard<std::mutex> lock(pendingMutex);
-
     for (auto &pair : pendingMessages) {
         auto &pending = pair.second;
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                           now - pending.timeSent).count();
-        // If 100ms have passed without an ACK, re-send
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - pending.timeSent).count();
         if (elapsed > 100) {
             packetLossCount++;
-
-            std::lock_guard<std::mutex> sockLock(socketMutex);
-            int sentBytes = sendto(sock, pending.data.data(),
-                                   (int)pending.data.size(), 0,
-                                   reinterpret_cast<struct sockaddr*>(&serverAddr),
-                                   sizeof(serverAddr));
-            if (sentBytes >= 0) {
-                pending.timeSent = now; // reset timer
-            } else {
-                std::cerr << "[NetworkSystem] Resend failed.\n";
+            {
+                std::lock_guard<std::mutex> sockLock(socketMutex);
+                int sentBytes = sendto(sock, pending.data.data(), static_cast<int>(pending.data.size()), 0,
+                                       reinterpret_cast<struct sockaddr*>(&serverAddr), sizeof(serverAddr));
+                if (sentBytes >= 0) {
+                    pending.timeSent = now;
+                } else {
+                    std::cerr << "[NetworkSystem] Resend failed.\n";
+                }
             }
         }
     }
 }
 
 void NetworkSystem::update(float dt, Engine::EntityManager &em, Engine::ComponentManager &cm) {
-    // Non-blocking receive
     char buffer[2048];
     int bytesReceived = 0;
     {
         std::lock_guard<std::mutex> lock(socketMutex);
-#ifdef _WIN32
-        bytesReceived = recvfrom(sock, buffer, (int)sizeof(buffer), MSG_DONTWAIT, nullptr, nullptr);
-#else
         bytesReceived = recvfrom(sock, buffer, sizeof(buffer), MSG_DONTWAIT, nullptr, nullptr);
-#endif
     }
 
-    if (bytesReceived >= (int)sizeof(MessageHeader)) {
+    if (bytesReceived >= static_cast<int>(sizeof(MessageHeader))) {
         MessageHeader header;
         std::memcpy(&header, buffer, sizeof(MessageHeader));
         uint32_t seq = header.sequence;
 
-        // If it's important, send ack
-        if (header.flags & 1) {
+        if (header.flags & 1)
             sendAck(seq);
-        }
 
         switch (header.type) {
-            case MSG_ACK: {
-                if (bytesReceived >= (int)(sizeof(MessageHeader) + sizeof(AckPayload))) {
+            case static_cast<uint8_t>(MessageType::ACK): {
+                if (bytesReceived >= static_cast<int>(sizeof(MessageHeader) + sizeof(AckPayload))) {
                     AckPayload ack;
                     std::memcpy(&ack, buffer + sizeof(MessageHeader), sizeof(AckPayload));
-                    // Remove from pending
                     std::lock_guard<std::mutex> lock(pendingMutex);
                     pendingMessages.erase(ack.ackSequence);
                 }
                 break;
             }
-            case MSG_START: {
+            case static_cast<uint8_t>(MessageType::START): {
                 {
                     std::lock_guard<std::mutex> lock(gameStartedMutex);
                     m_gameStarted = true;
                 }
-                std::cout << "[NetworkSystem] Received MSG_START => gameStarted=true.\n";
+                std::cout << "[NetworkSystem] Received MSG_START: gameStarted set to true.\n";
                 break;
             }
-            case MSG_PONG: {
-                // measure round-trip
-                if (bytesReceived >= (int)(sizeof(MessageHeader) + sizeof(PingPayload))) {
+            case static_cast<uint8_t>(MessageType::PONG): {
+                if (bytesReceived >= static_cast<int>(sizeof(MessageHeader) + sizeof(PingPayload))) {
                     PingPayload pong;
                     std::memcpy(&pong, buffer + sizeof(MessageHeader), sizeof(PingPayload));
                     if (pong.pingSequence == lastPingSequence) {
                         auto now = std::chrono::steady_clock::now();
-                        float ms = std::chrono::duration<float,std::milli>(now - pingSentTime).count();
+                        float ms = std::chrono::duration<float, std::milli>(now - pingSentTime).count();
                         latencyMs = ms;
                     }
                 }
                 break;
             }
-            case MSG_GAME_STATE: {
-                // interpret the full game state
-                if (bytesReceived >= (int)(sizeof(MessageHeader) + sizeof(GameStatePayload))) {
+            case static_cast<uint8_t>(MessageType::GAME_STATE): {
+                if (bytesReceived >= static_cast<int>(sizeof(MessageHeader) + sizeof(GameStatePayload))) {
                     GameStatePayload gs;
                     std::memcpy(&gs, buffer + sizeof(MessageHeader), sizeof(GameStatePayload));
 
-                    // Update enemies
                     {
                         std::lock_guard<std::mutex> lock(remoteEnemiesMutex);
                         std::unordered_set<int> updated;
-                        for (int i=0; i<gs.numEnemies; i++) {
+                        for (int i = 0; i < gs.numEnemies; i++) {
                             int eID = gs.enemies[i].enemyID;
                             updated.insert(eID);
-
                             if (gs.enemies[i].health <= 0) {
-                                // remove if existing
                                 if (remoteEnemies.count(eID)) {
                                     em.destroyEntity(remoteEnemies[eID]);
                                     remoteEnemies.erase(eID);
                                 }
                                 continue;
                             }
-                            // create or update
                             if (!remoteEnemies.count(eID)) {
                                 Engine::Entity eEnt = em.createEntity();
                                 cm.addComponent(eEnt, Position{gs.enemies[i].x, gs.enemies[i].y});
@@ -221,7 +186,6 @@ void NetworkSystem::update(float dt, Engine::EntityManager &em, Engine::Componen
                                 }
                             }
                         }
-                        // remove stale
                         for (auto it = remoteEnemies.begin(); it != remoteEnemies.end();) {
                             if (updated.find(it->first) == updated.end()) {
                                 em.destroyEntity(it->second);
@@ -231,33 +195,40 @@ void NetworkSystem::update(float dt, Engine::EntityManager &em, Engine::Componen
                             }
                         }
                     }
-
-                    // Update players
                     {
                         std::lock_guard<std::mutex> lock(remotePlayersMutex);
                         std::unordered_set<int> updated;
-                        for (int i=0; i<gs.numPlayers; i++) {
+                        for (int i = 0; i < gs.numPlayers; i++) {
                             int pid = gs.players[i].playerID;
-                            updated.insert(pid);
-
-                            if (gs.players[i].health <= 0) {
-                                // remove if exist
+                            if (pid == getLocalNetworkID()) {
+                                if (auto *pos = cm.getComponent<Position>(0)) {
+                                    pos->x = gs.players[i].x;
+                                    pos->y = gs.players[i].y;
+                                }
+                                if (auto *hp = cm.getComponent<Health>(0)) {
+                                    hp->current = gs.players[i].health;
+                                }
                                 if (remotePlayers.count(pid)) {
                                     em.destroyEntity(remotePlayers[pid]);
                                     remotePlayers.erase(pid);
                                 }
                                 continue;
                             }
-
+                            updated.insert(pid);
+                            if (gs.players[i].health <= 0) {
+                                if (remotePlayers.count(pid)) {
+                                    em.destroyEntity(remotePlayers[pid]);
+                                    remotePlayers.erase(pid);
+                                }
+                                continue;
+                            }
                             if (!remotePlayers.count(pid)) {
-                                // create
                                 Engine::Entity pEnt = em.createEntity();
                                 cm.addComponent(pEnt, Position{gs.players[i].x, gs.players[i].y});
                                 auto rpTex = cm.getGlobalTexture("remotePlayer");
                                 cm.addComponent(pEnt, Sprite{rpTex, rpTex.width, rpTex.height});
                                 remotePlayers[pid] = pEnt;
                             } else {
-                                // update
                                 Engine::Entity pEnt = remotePlayers[pid];
                                 if (auto *pos = cm.getComponent<Position>(pEnt)) {
                                     pos->x = gs.players[i].x;
@@ -265,7 +236,6 @@ void NetworkSystem::update(float dt, Engine::EntityManager &em, Engine::Componen
                                 }
                             }
                         }
-                        // remove stale
                         for (auto it = remotePlayers.begin(); it != remotePlayers.end();) {
                             if (updated.find(it->first) == updated.end()) {
                                 em.destroyEntity(it->second);
@@ -276,14 +246,12 @@ void NetworkSystem::update(float dt, Engine::EntityManager &em, Engine::Componen
                         }
                     }
 
-                    // Update bullets
                     {
                         std::lock_guard<std::mutex> lock(remoteBulletsMutex);
                         std::unordered_set<int> updated;
-                        for (int i=0; i<gs.numBullets; i++) {
+                        for (int i = 0; i < gs.numBullets; i++) {
                             auto &b = gs.bullets[i];
                             updated.insert(b.bulletID);
-
                             if (!remoteBullets.count(b.bulletID)) {
                                 Engine::Entity bEnt = em.createEntity();
                                 cm.addComponent(bEnt, Position{b.x, b.y});
@@ -298,7 +266,6 @@ void NetworkSystem::update(float dt, Engine::EntityManager &em, Engine::Componen
                                 }
                             }
                         }
-                        // remove stale
                         for (auto it = remoteBullets.begin(); it != remoteBullets.end();) {
                             if (updated.find(it->first) == updated.end()) {
                                 em.destroyEntity(it->second);
@@ -311,8 +278,8 @@ void NetworkSystem::update(float dt, Engine::EntityManager &em, Engine::Componen
                 }
                 break;
             }
-            case MSG_LOBBY_STATUS: {
-                if (bytesReceived >= (int)(sizeof(MessageHeader) + sizeof(LobbyStatusPayload))) {
+            case static_cast<uint8_t>(MessageType::LOBBY_STATUS): {
+                if (bytesReceived >= static_cast<int>(sizeof(MessageHeader) + sizeof(LobbyStatusPayload))) {
                     LobbyStatusPayload ls;
                     std::memcpy(&ls, buffer + sizeof(MessageHeader), sizeof(LobbyStatusPayload));
                     std::lock_guard<std::mutex> lock(lobbyMutex);
@@ -321,17 +288,13 @@ void NetworkSystem::update(float dt, Engine::EntityManager &em, Engine::Componen
                 }
                 break;
             }
-            default: {
-                // ignore unhandled message
+            default:
                 break;
-            }
         }
     }
 
-    // Resend important messages if not acked
     processPendingMessages();
 
-    // Periodic ping (once per second)
     static float pingTimer = 0.0f;
     pingTimer += dt;
     if (pingTimer >= 1.0f) {
@@ -340,7 +303,7 @@ void NetworkSystem::update(float dt, Engine::EntityManager &em, Engine::Componen
         PingPayload pp;
         pp.pingSequence = lastPingSequence;
         pingSentTime = std::chrono::steady_clock::now();
-        sendPacket(MSG_PING, &pp, sizeof(pp), false);
+        sendPacket(static_cast<uint8_t>(MessageType::PING), &pp, sizeof(pp), false);
     }
 }
 

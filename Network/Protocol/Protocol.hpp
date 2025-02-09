@@ -7,45 +7,37 @@
 
 #pragma pack(push, 1)
 
-// -------------------------------------
-// Message types
-// -------------------------------------
-enum MessageType : uint8_t {
-    MSG_READY         = 1,
-    MSG_START         = 2,
-    MSG_ACK           = 5,
-    MSG_PING          = 6,
-    MSG_PONG          = 7,
-    MSG_GAME_STATE    = 8,
-    MSG_LOBBY_STATUS  = 10,
-    MSG_PLAYER_INPUT  = 11
+enum class MessageType : uint8_t {
+    READY         = 1,
+    START         = 2,
+    ACK           = 5,
+    PING          = 6,
+    PONG          = 7,
+    GAME_STATE    = 8,
+    LOBBY_STATUS  = 10,
+    PLAYER_INPUT  = 11
 };
 
-// -------------------------------------
 struct MessageHeader {
     uint8_t  type;
     uint32_t sequence;
     uint32_t timestamp;
-    uint8_t  flags;  // bit 0 => important
+    uint8_t  flags;
 };
 
-// acknowledging important messages
 struct AckPayload {
     uint32_t ackSequence;
 };
 
-// latency measurement
 struct PingPayload {
     uint32_t pingSequence;
 };
 
-// showing lobby info
 struct LobbyStatusPayload {
     uint8_t totalClients;
     uint8_t readyClients;
 };
 
-// client input
 struct PlayerInputPayload {
     int32_t netID;
     bool up;
@@ -55,25 +47,23 @@ struct PlayerInputPayload {
     bool shoot;
 };
 
-// A bullet in the game state
 struct BulletState {
     int32_t bulletID;
     float   x;
     float   y;
     float   vx;
     float   vy;
-    int32_t ownerID; // >= 0 => player bullet, <0 => enemy bullet
+    int32_t ownerID;
 };
 
-// An enemy in the game state
 struct EnemyState {
     int32_t enemyID;
     float   x;
     float   y;
     int32_t health;
+    uint8_t type;
 };
 
-// Full game state
 struct GameStatePayload {
     uint8_t numEnemies;
     EnemyState enemies[32];
@@ -92,7 +82,6 @@ struct GameStatePayload {
 
 #pragma pack(pop)
 
-// Utility to get current time in ms
 inline uint32_t getCurrentTimeMS() {
     using ms = std::chrono::milliseconds;
     return static_cast<uint32_t>(
