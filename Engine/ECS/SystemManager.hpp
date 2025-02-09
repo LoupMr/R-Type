@@ -5,6 +5,8 @@
 #include <memory>
 #include <type_traits>
 #include "System.hpp"
+#include "EntityManager.hpp"
+#include "ComponentManager.hpp"
 
 namespace Engine {
 
