@@ -6,7 +6,6 @@
 #include <cmath>
 #include <iostream>
 
-// RenderSystem
 void RenderSystem::update(float dt, Engine::EntityManager& em, Engine::ComponentManager& cm) {
     for (auto e : em.getAllEntities()) {
         if (!em.isAlive(e)) continue;
@@ -19,7 +18,6 @@ void RenderSystem::update(float dt, Engine::EntityManager& em, Engine::Component
         }
     }
 
-    // Display player health (assuming local player is entity 0)
     Engine::Entity player = 0;
     auto health = cm.getComponent<Health>(player);
     if (health) {
@@ -27,7 +25,6 @@ void RenderSystem::update(float dt, Engine::EntityManager& em, Engine::Component
     }
 }
 
-// MovementSystem
 void MovementSystem::update(float dt, Engine::EntityManager& em, Engine::ComponentManager& cm) {
     for (auto e : em.getAllEntities()) {
         if (!em.isAlive(e)) continue;
@@ -38,7 +35,6 @@ void MovementSystem::update(float dt, Engine::EntityManager& em, Engine::Compone
             pos->x += vel->vx * dt;
             pos->y += vel->vy * dt;
 
-            // Example bullet logic: destroy bullets if they go off-screen
             if (pos->x < 0 || pos->x > 800 || pos->y < 0 || pos->y > 600) {
                 em.destroyEntity(e);
             }
@@ -46,13 +42,11 @@ void MovementSystem::update(float dt, Engine::EntityManager& em, Engine::Compone
     }
 }
 
-// InputSystem
 void InputSystem::handleInput(Engine::EntityManager& em, Engine::ComponentManager& cm) {
     for (auto entity : em.getAllEntities()) {
         auto kb = cm.getComponent<KeyboardControl>(entity);
         if (!kb) continue;
 
-        // Using Engine::Input for keystates
         kb->up    = Engine::Input::IsKeyDown(KEY_W);
         kb->down  = Engine::Input::IsKeyDown(KEY_S);
         kb->left  = Engine::Input::IsKeyDown(KEY_A);
@@ -76,7 +70,6 @@ void InputSystem::update(float dt, Engine::EntityManager& em, Engine::ComponentM
     }
 }
 
-// ShootingSystem
 void ShootingSystem::update(float dt, Engine::EntityManager& em, Engine::ComponentManager& cm) {
     for (auto e : em.getAllEntities()) {
         if (!em.isAlive(e)) continue;
@@ -84,7 +77,6 @@ void ShootingSystem::update(float dt, Engine::EntityManager& em, Engine::Compone
         auto kb = cm.getComponent<KeyboardControl>(e);
         auto pos = cm.getComponent<Position>(e);
         if (kb && kb->shoot && pos) {
-            // Create a bullet
             Engine::Entity bullet = em.createEntity();
             cm.addComponent(bullet, Position{pos->x + 50, pos->y});
             cm.addComponent(bullet, Velocity{500.0f, 0.0f});
@@ -94,12 +86,11 @@ void ShootingSystem::update(float dt, Engine::EntityManager& em, Engine::Compone
     }
 }
 
-// EnemySystem
 void EnemySystem::update(float dt, Engine::EntityManager& em, Engine::ComponentManager& cm) {
     static float spawnTimer = 0.0f;
     spawnTimer += dt;
 
-    if (spawnTimer >= 2.0f) { // spawn an enemy every 2 seconds
+    if (spawnTimer >= 2.0f) {
         spawnTimer = 0.0f;
         std::cout << "[DEBUG] Spawning enemy..." << std::endl;
 
@@ -110,7 +101,6 @@ void EnemySystem::update(float dt, Engine::EntityManager& em, Engine::ComponentM
         cm.addComponent(enemy, Sprite{cm.getGlobalTexture("enemy"), 50, 50});
     }
 
-    // Basic enemy shooting
     for (auto e : em.getAllEntities()) {
         if (!em.isAlive(e)) continue;
         auto en = cm.getComponent<Enemy>(e);
@@ -131,13 +121,10 @@ void EnemySystem::update(float dt, Engine::EntityManager& em, Engine::ComponentM
     }
 }
 
-// CollisionSystem
 void CollisionSystem::update(float dt, Engine::EntityManager& em, Engine::ComponentManager& cm) {
-    // Very naive collision logic for bullets & enemies/players
     Engine::Entity player = 0;
     auto playerHealth = cm.getComponent<Health>(player);
 
-    // Check if player is dead => respawn logic
     if (playerHealth && playerHealth->current <= 0) {
         em.destroyEntity(player);
         playerDead = true;
@@ -146,7 +133,6 @@ void CollisionSystem::update(float dt, Engine::EntityManager& em, Engine::Compon
     if (playerDead) {
         respawnTimer -= dt;
         if (respawnTimer <= 0) {
-            // Respawn
             player = em.createEntity();
             cm.addComponent(player, Position{100.0f, 300.0f});
             cm.addComponent(player, Velocity{0.0f, 0.0f});
@@ -157,7 +143,6 @@ void CollisionSystem::update(float dt, Engine::EntityManager& em, Engine::Compon
         }
     }
 
-    // Bullet collisions
     for (auto b : em.getAllEntities()) {
         if (!em.isAlive(b)) continue;
         auto bPos = cm.getComponent<Position>(b);
@@ -185,7 +170,7 @@ void CollisionSystem::update(float dt, Engine::EntityManager& em, Engine::Compon
                     } else if (hp) {
                         hp->current--;
                         if (hp->current <= 0) {
-                            em.destroyEntity(e); // i.e. kill the player
+                            em.destroyEntity(e);
                         }
                     }
                     em.destroyEntity(b);
@@ -196,12 +181,10 @@ void CollisionSystem::update(float dt, Engine::EntityManager& em, Engine::Compon
     }
 }
 
-// AudioSystem
 AudioSystem::AudioSystem(Sound sound) : m_sound(sound) {}
 AudioSystem::~AudioSystem() {}
 
 void AudioSystem::update(float dt, Engine::EntityManager& em, Engine::ComponentManager& cm) {
-    // Example: play sound if velocity is high
     for (auto e : em.getAllEntities()) {
         auto vel = cm.getComponent<Velocity>(e);
         if (vel) {
